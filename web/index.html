@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<title>three.js webgl - shader [Monjori]</title>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+        <script src="http://threejs.org/build/three.min.js"></script>
+        <script src="http://threejs.org/examples/js/libs/tween.min.js"></script>
+        <script src="http://threejs.org/examples/js/libs/stats.min.js"></script>
+        <script src="http://threejs.org/examples/js/libs/dat.gui.min.js"></script>
+	</head>
+	<body>
+
+        <div id ="source images">
+        <img src="images/front.jpg" alt="front image" height="200" width="200">
+        <img src="images/rear.jpg"  alt="rear image"  height="200" width="200">
+        <img src="images/left.jpg"  alt="left image"  height="200" width="200">
+        <img src="images/right.jpg" alt="right image" height="200" width="200">
+        <div id ="source image info"  >
+            <p> front 
+            <p> rear  
+            <p> left  
+            <p> right
+        </div>
+        </div>
+
+		<div id="container" height="640" window="480"></div>
+
+		<script id="vertexShader" type="x-shader/x-vertex">
+
+			varying vec2 vUv;
+			void main()	{
+				vUv = uv;
+				gl_Position = vec4( position, 1.0 );
+
+			}
+
+		</script>
+
+		<script id="fragmentShader" type="x-shader/x-fragment">
+
+            #ifdef GL_ES
+                precision highp float;
+            #endif
+
+            uniform vec2 resolution;
+            uniform float time;
+
+			varying vec2 vUv;
+
+            uniform sampler2D frontImage;
+            uniform sampler2D rearImage;
+            uniform sampler2D leftImage;
+            uniform sampler2D rightImage;
+
+            uniform float sourceImageId; 
+
+            void main(void)
+            {
+                vec3 col;
+                if(sourceImageId>-.5 && sourceImageId<0.5) col = texture2D(frontImage, vUv).rgb;
+                if(sourceImageId>0.5 && sourceImageId<1.5) col = texture2D( rearImage, vUv).rgb;
+                if(sourceImageId>1.5 && sourceImageId<2.5) col = texture2D( leftImage, vUv).rgb;
+                if(sourceImageId>2.5 && sourceImageId<3.5) col = texture2D(rightImage, vUv).rgb;
+                gl_FragColor = vec4(col, 1.0);
+            }
+
+		</script>
+
+		<script type="module">
+
+
+			var container;
+
+			var camera, scene, renderer;
+
+			var uniforms;
+
+            var stats;
+
+            var parameters;
+
+
+			init();
+			animate();
+
+			function init() {
+
+				container = document.getElementById( 'container' );
+
+				camera = new THREE.OrthographicCamera( - 1, 1, 1, - 1, 0, 1 );
+
+				scene = new THREE.Scene();
+
+				var geometry = new THREE.PlaneBufferGeometry( 2, 2 );
+
+                parameters =
+	            {
+	            	a: 200, // numeric
+	            	b: 200, // numeric slider
+	            	c: "Hello, GUI!", // string
+	            	d: false, // boolean (checkbox)
+	            	e: "#ff8800", // color (hex)
+	            	f: function() { alert("Hello!") },
+	            	g: function() { alert( parameters.c ) },
+	            	v : 0,    // dummy value, only type is important
+	            	w: "...", // dummy value, only type is important
+	            	x: 0, y: 0, z: 0,
+
+	            	sourceImageId: 0,
+	            };
+
+				uniforms = {
+					"time": { value: 1.0 },
+					"resolution": {value:new THREE.Vector2( window.innerWidth, window.innerHeight )},
+                    "frontImage": { type: 't'},
+                    "rearImage" : { type: 't'},
+                    "leftImage" : { type: 't'},
+                    "rightImage": { type: 't'},
+					"sourceImageId": {type:'f', value:0.},
+				};
+
+                var texloader = new THREE.TextureLoader();
+                texloader.load("images/front.jpg", function(tex) { uniforms.frontImage.value = tex; });
+                texloader.load("images/rear.jpg" , function(tex) { uniforms. rearImage.value = tex; });
+                texloader.load("images/left.jpg" , function(tex) { uniforms. leftImage.value = tex; });
+                texloader.load("images/right.jpg", function(tex) { uniforms.rightImage.value = tex; });
+
+				var material = new THREE.ShaderMaterial( {
+
+					uniforms: uniforms,
+					vertexShader: document.getElementById( 'vertexShader' ).textContent,
+					fragmentShader: document.getElementById( 'fragmentShader' ).textContent
+
+				} );
+
+				var mesh = new THREE.Mesh( geometry, material );
+				scene.add( mesh );
+
+				renderer = new THREE.WebGLRenderer();
+                renderer.setSize(640,480);
+				renderer.setPixelRatio( window.devicePixelRatio );
+				container.appendChild( renderer.domElement );
+
+				onWindowResize();
+
+				window.addEventListener( 'resize', onWindowResize, false );
+
+                stats = new Stats();
+                document.body.appendChild(stats.dom);
+
+   				var gui = new dat.GUI();
+
+	            gui.add( parameters, 'a' ).name('Number');
+	            gui.add( parameters, 'b' ).min(128).max(256).step(16).name('Slider');
+	            gui.add( parameters, 'c' ).name('String');
+	            gui.add( parameters, 'd' ).name('Boolean');
+
+	            gui.addColor( parameters, 'e' ).name('Color');
+
+	            var numberList = [1, 2, 3];
+	            gui.add( parameters, 'v', numberList ).name('List');
+
+	            var stringList = ["One", "Two", "Three"];
+	            gui.add( parameters, 'w', stringList ).name('List');
+
+	            gui.add( parameters, 'f' ).name('Say "Hello!"');
+	            gui.add( parameters, 'g' ).name("Alert Message");
+
+	            var folder1 = gui.addFolder('Coordinates');
+	            folder1.add( parameters, 'x' );
+	            folder1.add( parameters, 'y' );
+	            folder1.close();
+
+	            //var ImagegList = ["front", "rear", "left", "right"];
+	            //gui.add( parameters, 'sourceImage', stringList ).name('source image');
+	            //gui.add( parameters, 'sourceImageId', stringList ).name('source image') .onChange(function(value) { 
+                //        console.log("onChange:" + parameters.sourceImageId);
+                //});;
+                gui.add(parameters, 'sourceImageId', { front: 0, rear: 1, left: 2, right:3 });
+	            gui.open();
+
+
+			}
+
+			function onWindowResize() {
+
+				//renderer.setSize( window.innerWidth, window.innerHeight );
+
+			}
+
+			//
+
+			function animate( timestamp ) {
+
+				requestAnimationFrame( animate );
+
+				uniforms[ "time" ].value = timestamp / 1000;
+                uniforms[ "sourceImageId"].value = parameters.sourceImageId*1.;
+
+				renderer.render( scene, camera );
+
+                stats.update();
+
+			}
+
+		</script>
+
+	</body>
+</html>
