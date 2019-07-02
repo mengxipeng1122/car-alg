@@ -48,20 +48,20 @@
 
 			varying vec2 vUv;
 
-            uniform sampler2D frontImage;
-            uniform sampler2D rearImage;
-            uniform sampler2D leftImage;
-            uniform sampler2D rightImage;
+            uniform sampler2D texFront;
+            uniform sampler2D texRear;
+            uniform sampler2D texLeft;
+            uniform sampler2D texRight;
 
-            uniform float sourceImageId; 
+            uniform float imageId; 
 
             void main(void)
             {
                 vec3 col;
-                if(sourceImageId>-.5 && sourceImageId<0.5) col = texture2D(frontImage, vUv).rgb;
-                if(sourceImageId>0.5 && sourceImageId<1.5) col = texture2D( rearImage, vUv).rgb;
-                if(sourceImageId>1.5 && sourceImageId<2.5) col = texture2D( leftImage, vUv).rgb;
-                if(sourceImageId>2.5 && sourceImageId<3.5) col = texture2D(rightImage, vUv).rgb;
+                if(imageId>-.5 && imageId<0.5) col = texture2D(texFront, vUv).rgb;
+                if(imageId>0.5 && imageId<1.5) col = texture2D(texRear , vUv).rgb;
+                if(imageId>1.5 && imageId<2.5) col = texture2D(texLeft , vUv).rgb;
+                if(imageId>2.5 && imageId<3.5) col = texture2D(texRight, vUv).rgb;
                 gl_FragColor = vec4(col, 1.0);
             }
 
@@ -79,6 +79,39 @@
             var stats;
 
             var parameters;
+
+
+            ////////////////////////////////////////////////// 
+            // source parameters
+            var c = [
+              [ 626.4773028972922, 360.0002396969369 ],
+              [ 649.9034085849396, 355.9149025117838 ],
+              [ 656.966912689312, 353.16959257919007 ],
+              [ 624.3447461621616, 358.5936049106966 ]
+            ];
+            var s = [ 277.0, 277.0, 275.0, 276.0 ];
+            var m= [
+      [
+        [ -0.02232812953637777, -0.00021118277610369002, 35.944052921684786 ],
+        [ -0.0003039373452856363, 0.002000022138266926, -175.75145474477074 ],
+        [ 3.6817822034593213e-07, -4.979765120187897e-05, 1.0 ]
+      ],
+      [
+        [ 0.02383915934908536, -0.0011302414724633939, -28.270079126325868 ],
+        [ -8.074382762572041e-05, -0.005419906507451418, -306.9443585689716 ],
+        [ 1.94189062333509e-06, 5.202229057589598e-05, 1.0 ]
+      ],
+      [
+        [ -0.07734039757816902, -1.309773096080701, 9259.305412518077 ],
+        [ -0.8385853286464056, 0.05202234078110945, -16126.723382079537 ],
+        [ 0.002111786449145603, -0.0002651995038506183, 1.0 ]
+      ],
+      [
+        [ -0.19939572411192916, 1.9863228448154042, -12803.392109639039 ],
+        [ 1.3429826493543162, 0.04250799504232877, -25525.738047661744 ],
+        [ -0.0030197436335338422, -0.00048116342001996054, 1.0 ]
+      ]
+                ];
 
 
 			init();
@@ -107,24 +140,24 @@
 	            	w: "...", // dummy value, only type is important
 	            	x: 0, y: 0, z: 0,
 
-	            	sourceImageId: 0,
+	            	imageId: 0,
 	            };
 
 				uniforms = {
-					"time": { value: 1.0 },
-					"resolution": {value:new THREE.Vector2( window.innerWidth, window.innerHeight )},
-                    "frontImage": { type: 't'},
-                    "rearImage" : { type: 't'},
-                    "leftImage" : { type: 't'},
-                    "rightImage": { type: 't'},
-					"sourceImageId": {type:'f', value:0.},
+					"time"      : { value: 1.0 },
+					"resolution": { value:new THREE.Vector2( window.innerWidth, window.innerHeight )},
+                    'texFront'  : { type: 't'},
+                    'texRear'   : { type: 't'},
+                    'texLeft'   : { type: 't'},
+                    'texRight'  : { type: 't'},
+					"imageId"   : { value: 0.},
 				};
-
+                // load source images;
                 var texloader = new THREE.TextureLoader();
-                texloader.load("images/front.jpg", function(tex) { uniforms.frontImage.value = tex; });
-                texloader.load("images/rear.jpg" , function(tex) { uniforms. rearImage.value = tex; });
-                texloader.load("images/left.jpg" , function(tex) { uniforms. leftImage.value = tex; });
-                texloader.load("images/right.jpg", function(tex) { uniforms.rightImage.value = tex; });
+                texloader.load("images/front.jpg", function(tex) { uniforms.texFront.value = tex; });
+                texloader.load("images/rear.jpg" , function(tex) { uniforms.texRear .value = tex; });
+                texloader.load("images/left.jpg" , function(tex) { uniforms.texLeft .value = tex; });
+                texloader.load("images/right.jpg", function(tex) { uniforms.texRight.value = tex; });
 
 				var material = new THREE.ShaderMaterial( {
 
@@ -174,20 +207,15 @@
 
 	            //var ImagegList = ["front", "rear", "left", "right"];
 	            //gui.add( parameters, 'sourceImage', stringList ).name('source image');
-	            //gui.add( parameters, 'sourceImageId', stringList ).name('source image') .onChange(function(value) { 
-                //        console.log("onChange:" + parameters.sourceImageId);
+                //        console.log("onChange:" + parameters.imageId);
                 //});;
-                gui.add(parameters, 'sourceImageId', { front: 0, rear: 1, left: 2, right:3 });
+                gui.add(parameters, 'imageId', { front: 0, rear: 1, left: 2, right:3 });
 	            gui.open();
 
 
 			}
 
-			function onWindowResize() {
-
-				//renderer.setSize( window.innerWidth, window.innerHeight );
-
-			}
+			function onWindowResize() { }
 
 			//
 
@@ -196,7 +224,7 @@
 				requestAnimationFrame( animate );
 
 				uniforms[ "time" ].value = timestamp / 1000;
-                uniforms[ "sourceImageId"].value = parameters.sourceImageId*1.;
+                uniforms[ "imageId"].value = parameters.imageId;
 
 				renderer.render( scene, camera );
 
